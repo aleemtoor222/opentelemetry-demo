@@ -32,8 +32,9 @@ jobs:
           SERVICES="frontend checkout cart currency email payment shipping recommendation"
           for SERVICE in $SERVICES; do
             echo "🚀 Building $SERVICE image..."
-            docker build -t $DOCKERHUB_USERNAME/$SERVICE:latest $SERVICE/
+            docker build -t $DOCKERHUB_USERNAME/$SERVICE:latest ./src/$SERVICE/
           done
+
 
       # 4️⃣ Scan all built images with Trivy
       - name: Security scan with Trivy
