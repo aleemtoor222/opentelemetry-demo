@@ -46,11 +46,24 @@ jobs:
           sudo chmod +x /usr/local/bin/docker-compose
           docker-compose --version
 
+      # 4️⃣a Install yq (needed for parsing docker-compose images)
+      - name: Install yq
+        run: |
+          sudo apt-get update && sudo apt-get install -y yq
+
       # 5️⃣ Build and push Docker images to ECR
       - name: Build & Push images via Docker Compose
         run: |
           docker-compose -f docker-compose.yml build
-          docker-compose -f docker-compose.yml push
+          # Loop through all services and push to ECR
+          for service in $(docker-compose config --services); do
+            image=$(docker-compose config | yq eval ".services.$service.image" -)
+            ecr_image="${ECR_REGISTRY}/${image}"
+            echo "Tagging $image as $ecr_image"
+            docker tag "$image" "$ecr_image"
+            echo "Pushing $ecr_image to ECR"
+            docker push "$ecr_image"
+         done
 
       # 6️⃣ Security scan with Trivy (optional)
       - name: Security scan with Trivy
