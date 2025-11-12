@@ -72,6 +72,11 @@ jobs:
               echo "Skipping external image: $image"
               continue
             fi
+            # Skip if image doesn't exist locally (only push built images)
+            if ! docker image inspect "$image" >/dev/null 2>&1; then
+              echo "Skipping $image because it doesn't exist locally."
+              continue
+            fi
 
             ecr_image="${ECR_REGISTRY}/${image}"
             echo "Tagging $image as $ecr_image"
