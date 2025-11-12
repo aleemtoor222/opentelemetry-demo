@@ -1,4 +1,4 @@
-name: CI/CD Pipeline - OpenTelemetry Demo
+name: CI/CD Pipeline - OpenTelemetry Demo (ECR)
 
 on:
   push:
@@ -7,8 +7,10 @@ on:
   workflow_dispatch:
 
 env:
-  DOCKERHUB_USERNAME: aleemdevops
-  DOCKERHUB_TOKEN: dckr_pat_oIoJSBa1l3mGwP-l3yc7kcAjw44  # <-- your Docker Hub token
+  AWS_REGION: us-east-1
+  ECR_REGISTRY: 771197743332.dkr.ecr.us-east-1.amazonaws.com
+  ECR_REPOSITORY_FRONTEND: opentelemetry-demo-frontend
+  ECR_REPOSITORY_BACKEND: opentelemetry-demo-backend
   ARGOCD_SERVER: a58113f34e69f44779004702809e9037-1903772346.us-east-1.elb.amazonaws.com
   ARGOCD_APP: opentelemetry-demo
   ARGOCD_USERNAME: admin
@@ -23,13 +25,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2️⃣ Login to Docker Hub
-      - name: Login to Docker Hub
-        run: |
-          echo "${{ env.DOCKERHUB_TOKEN }}" | docker login -u "${{ env.DOCKERHUB_USERNAME }}" --password-stdin
-          docker info | grep Username || (echo "❌ Docker login failed!" && exit 1)
+      # 2️⃣ Configure AWS CLI using secrets
+      - name: Configure AWS CLI
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
 
-      # 3️⃣ Install Docker Compose
+      # 3️⃣ Login to Amazon ECR
+      - name: Login to Amazon ECR
+        run: |
+          aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
+
+      # 4️⃣ Install Docker Compose
       - name: Install Docker Compose
         run: |
           DOCKER_COMPOSE_VERSION=2.23.1
@@ -37,13 +46,13 @@ jobs:
           sudo chmod +x /usr/local/bin/docker-compose
           docker-compose --version
 
-      # 4️⃣ Build and push all images
+      # 5️⃣ Build and push Docker images to ECR
       - name: Build & Push images via Docker Compose
         run: |
           docker-compose -f docker-compose.yml build
           docker-compose -f docker-compose.yml push
 
-      # 5️⃣ Security scan (optional)
+      # 6️⃣ Security scan with Trivy (optional)
       - name: Security scan with Trivy
         uses: aquasecurity/trivy-action@master
         with:
@@ -51,20 +60,20 @@ jobs:
           ignore-unfixed: true
           format: 'table'
           severity: 'CRITICAL,HIGH'
-          image-ref: ${{ env.DOCKERHUB_USERNAME }}/frontend:latest
+          image-ref: ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY_FRONTEND }}:latest
 
-      # 6️⃣ Update Kubernetes manifest
+      # 7️⃣ Update Kubernetes manifest with ECR image paths
       - name: Update image paths in manifest
         run: |
-          sed -i "s|ghcr.io/open-telemetry/demo:2.1.3-|${{ env.DOCKERHUB_USERNAME }}/|g" kubernetes/opentelemetry-demo.yaml
+          sed -i "s|ghcr.io/open-telemetry/demo:2.1.3-|${{ env.ECR_REGISTRY }}/|g" kubernetes/opentelemetry-demo.yaml
 
-      # 7️⃣ Install Argo CD CLI
+      # 8️⃣ Install ArgoCD CLI
       - name: Install ArgoCD CLI
         run: |
           curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
           chmod +x /usr/local/bin/argocd
 
-      # 8️⃣ Login to ArgoCD
+      # 9️⃣ Login to ArgoCD
       - name: Login to ArgoCD
         run: |
           argocd login $ARGOCD_SERVER \
@@ -72,7 +81,7 @@ jobs:
             --password ${{ secrets.ARGOCD_PASSWORD }} \
             --insecure
 
-      # 9️⃣ Deploy latest build
+      # 🔟 Deploy latest build via ArgoCD
       - name: Deploy latest build via ArgoCD
         run: |
           argocd app sync $ARGOCD_APP --refresh
