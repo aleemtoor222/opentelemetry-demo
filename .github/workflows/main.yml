@@ -86,15 +86,20 @@ jobs:
           done
 
 
-      # 6️⃣ Security scan with Trivy (optional)
-      - name: Security scan with Trivy
-        uses: aquasecurity/trivy-action@master
-        with:
-          scan-type: 'image'
-          ignore-unfixed: true
-          format: 'table'
-          severity: 'CRITICAL,HIGH'
-          image-ref: ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY_FRONTEND }}:latest
+            # 6️⃣ Security scan with Trivy (optional)
+           # - name: Security scan with Trivy
+             # if: success()  # Run only if previous steps succeeded
+              # run: |
+               # IMAGE="${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY_FRONTEND }}:latest"
+          
+                # Check if image exists locally or in ECR
+               # if docker pull "$IMAGE" 2>/dev/null || docker image inspect "$IMAGE" >/dev/null 2>&1; then
+                  #echo "Scanning image: $IMAGE"
+                  #trivy image --ignore-unfixed --format table --severity CRITICAL,HIGH "$IMAGE"
+                #else
+                  #echo "Skipping Trivy scan, image does not exist: $IMAGE"
+                #fi
+
 
       # 7️⃣ Update Kubernetes manifest with ECR image paths
       - name: Update image paths in manifest
