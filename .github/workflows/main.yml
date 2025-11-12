@@ -57,7 +57,7 @@ jobs:
           docker-compose -f docker-compose.yml build
           # Loop through all services and push to ECR
           for service in $(docker-compose config --services); do
-            image=$(docker-compose config | yq eval ".services.$service.image" -)
+            image=$(docker-compose config | yq e ".services.$service.image" -)
             ecr_image="${ECR_REGISTRY}/${image}"
             echo "Tagging $image as $ecr_image"
             docker tag "$image" "$ecr_image"
