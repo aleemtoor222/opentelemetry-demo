@@ -56,10 +56,15 @@ jobs:
       # 5️⃣ Build and push Docker images to ECR
       - name: Build & Push images via Docker Compose
         run: |
-          docker-compose -f docker-compose.yml build --parallel
+          docker-compose -f docker-compose.yml build
           # Loop through all services and push to ECR
           for service in $(docker-compose config --services); do
             image=$(docker-compose config | yq e ".services[\"$service\"].image" -)
+            # Skip external images like jaegertracing
+            if [[ $image == jaegertracing/* ]]; then
+              echo "Skipping external image: $image"
+              continue
+            fi
             ecr_image="${ECR_REGISTRY}/${image}"
             echo "Tagging $image as $ecr_image"
             docker tag "$image" "$ecr_image"
