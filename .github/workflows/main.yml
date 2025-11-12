@@ -60,17 +60,26 @@ jobs:
           # Loop through all services and push to ECR
           for service in $(docker-compose config --services); do
             image=$(docker-compose config | yq e ".services[\"$service\"].image" -)
+
+            # Skip if image is null or empty
+            if [[ "$image" == "null" || -z "$image" ]]; then
+              echo "Skipping $service because image is not defined."
+              continue
+            fi
+
             # Skip external images like jaegertracing
             if [[ $image == jaegertracing/* ]]; then
               echo "Skipping external image: $image"
               continue
             fi
+
             ecr_image="${ECR_REGISTRY}/${image}"
             echo "Tagging $image as $ecr_image"
             docker tag "$image" "$ecr_image"
             echo "Pushing $ecr_image to ECR"
             docker push "$ecr_image"
           done
+
 
       # 6️⃣ Security scan with Trivy (optional)
       - name: Security scan with Trivy
