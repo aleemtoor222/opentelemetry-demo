@@ -8,9 +8,9 @@ on:
 
 env:
   DOCKERHUB_USERNAME: aleemdevops
-  ARGOCD_SERVER: a7356559de49d49c6bd04fb7f3c4b8a6-939776074.us-east-1.elb.amazonaws.com
+  ARGOCD_SERVER: a58113f34e69f44779004702809e9037-1903772346.us-east-1.elb.amazonaws.com
   ARGOCD_APP: opentelemetry-demo
-  K8S_CONTEXT: arn:aws:eks:us-east-1:771197743332:cluster/observability
+  K8S_CONTEXT: iam-root-account@observability.us-east-1.eksctl.io
 
 jobs:
   build-test-push-deploy:
