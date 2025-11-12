@@ -63,7 +63,7 @@ jobs:
             docker tag "$image" "$ecr_image"
             echo "Pushing $ecr_image to ECR"
             docker push "$ecr_image"
-         done
+          done
 
       # 6️⃣ Security scan with Trivy (optional)
       - name: Security scan with Trivy
