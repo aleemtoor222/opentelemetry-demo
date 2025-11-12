@@ -68,7 +68,7 @@ jobs:
             fi
 
             # Skip external images like jaegertracing
-            if [[ $image == jaegertracing/* ]]; then
+            if [[ $image == jaegertracing/* || $image == ghcr.io/* ]]; then
               echo "Skipping external image: $image"
               continue
             fi
